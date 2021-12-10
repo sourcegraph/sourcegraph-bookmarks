@@ -1,7 +1,8 @@
 import * as sourcegraph from 'sourcegraph'
+import { isEqual } from 'lodash-es'
 
 interface Bookmark {
-    uri: string
+    // uri: string
     // TODO: use @sourcegraph/extension-api-types, `Range`, `Position`
     range?: {
         start: {
@@ -22,6 +23,17 @@ interface Settings {
     savedBookmarks: Bookmark[]
 }
 
+function saveBookmark(bookmark: Bookmark): void {
+    const bookmarks: Bookmark[] = sourcegraph.configuration.get().value['bookmarks.savedBookmarks'] || []
+    const existingIndex = bookmarks.findIndex(item => isEqual(item, bookmark)) // FIXME: use different comparison function
+    if (existingIndex >= 0) {
+        bookmarks.splice(existingIndex, 1)
+    } else {
+        bookmarks.push(bookmark)
+    }
+    sourcegraph.configuration.get().update('bookmarks.savedBookmarks', bookmarks)
+}
+
 export function activate(context: sourcegraph.ExtensionContext): void {
     // TODO: ensure command palette command is only active when there is a selection.
     // - Observe active editor, observe its selections.
@@ -31,8 +43,19 @@ export function activate(context: sourcegraph.ExtensionContext): void {
     context.subscriptions.add(
         sourcegraph.commands.registerCommand('bookmarks.toggle', () => {
             const editor = sourcegraph.app.activeWindow?.activeViewComponent
-            if (editor?.type === 'CodeEditor') {
-                // TODO: Create `Bookmark` object, push to user settings `bookmarks.savedBookmarks` array
+            if (editor?.type === 'CodeEditor' && editor.selection) {
+                const { start, end } = editor.selection
+                const bookmark: Bookmark = {
+                    // TODO: add uri
+                    range: {
+                        start,
+                        end,
+                    },
+                }
+                saveBookmark(bookmark)
+            } else {
+                // TODO: use notifications API
+                alert('Active CodeEditor with selected line is required.')
             }
         })
     )

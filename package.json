@@ -13,18 +13,18 @@
     "actions": [
       {
         "id": "bookmarks.toggle",
-        "title": "Toggle bookmark for selected line",
-        "command": "bookmarks.create"
+        "title": "Bookmarks: Toggle for selected line",
+        "command": "bookmarks.toggle"
       },
       {
         "id": "bookmarks.open",
-        "title": "Open the bookmark panel",
+        "title": "Bookmarks: Open the bookmark panel",
         "command": "openPanel",
         "commandArguments": [
           "bookmarks"
         ],
         "actionItem": {
-          "label": "Open bookmarks panel",
+          "label": "Bookmarks: Open bookmarks panel",
           "description": "Open the bookmarks panel",
           "iconURL": "https://raw.githubusercontent.com/sourcegraph/sourcegraph-bookmarks/main/src/assets/bookmark-icon.svg"
         }
@@ -79,6 +79,7 @@
     "@sourcegraph/eslint-config": "^0.26.0",
     "@sourcegraph/extension-api-stubs": "^1.6.0",
     "@sourcegraph/tsconfig": "^4.0.1",
+    "@types/lodash-es": "^4.17.5",
     "@types/mocha": "^9.0.0",
     "@types/mock-require": "^2.0.0",
     "eslint": "^8.3.0",
@@ -91,5 +92,8 @@
     "sourcegraph": "^25.4.0",
     "ts-node": "^10.4.0",
     "typescript": "^4.5.2"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21"
   }
 }
