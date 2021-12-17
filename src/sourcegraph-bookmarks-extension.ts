@@ -1,10 +1,10 @@
 import * as sourcegraph from 'sourcegraph'
-import { isEqual } from 'lodash-es'
 
 interface Bookmark {
-    // uri: string
+    id: string
+    uri: string
     // TODO: use @sourcegraph/extension-api-types, `Range`, `Position`
-    range?: {
+    range: {
         start: {
             line: number
             character: number
@@ -25,7 +25,7 @@ interface Settings {
 
 function saveBookmark(bookmark: Bookmark): void {
     const bookmarks: Bookmark[] = sourcegraph.configuration.get().value['bookmarks.savedBookmarks'] || []
-    const existingIndex = bookmarks.findIndex(item => isEqual(item, bookmark)) // FIXME: use different comparison function
+    const existingIndex = bookmarks.findIndex(item => item.id === bookmark.id)
     if (existingIndex >= 0) {
         bookmarks.splice(existingIndex, 1)
     } else {
@@ -46,7 +46,8 @@ export function activate(context: sourcegraph.ExtensionContext): void {
             if (editor?.type === 'CodeEditor' && editor.selection) {
                 const { start, end } = editor.selection
                 const bookmark: Bookmark = {
-                    // TODO: add uri
+                    id: editor.document.uri + start.character + start.line + end.character + end.line,
+                    uri: editor.document.uri,
                     range: {
                         start,
                         end,
