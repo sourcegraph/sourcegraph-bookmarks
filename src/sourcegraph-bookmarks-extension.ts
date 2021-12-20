@@ -1,3 +1,4 @@
+import { BehaviorSubject, map } from 'rxjs'
 import * as sourcegraph from 'sourcegraph'
 
 interface Bookmark {
@@ -34,6 +35,13 @@ function saveBookmark(bookmark: Bookmark): void {
     sourcegraph.configuration.get().update('bookmarks.savedBookmarks', bookmarks)
 }
 
+function getBookmarks(): Bookmark[] {
+    const bookmarks = sourcegraph.configuration.get().value['bookmarks.savedBookmarks'] || []
+    return bookmarks
+}
+
+const bookmarks$ = new BehaviorSubject<Bookmark[]>(getBookmarks())
+
 export function activate(context: sourcegraph.ExtensionContext): void {
     // TODO: ensure command palette command is only active when there is a selection.
     // - Observe active editor, observe its selections.
@@ -49,8 +57,15 @@ export function activate(context: sourcegraph.ExtensionContext): void {
                     id: editor.document.uri + start.character + start.line + end.character + end.line,
                     uri: editor.document.uri,
                     range: {
-                        start,
-                        end,
+                        start: {
+                            // Weirdly this is required in order to create a pure object with
+                            character: start.character,
+                            line: start.line,
+                        },
+                        end: {
+                            character: end.character,
+                            line: end.line,
+                        },
                     },
                 }
                 saveBookmark(bookmark)
@@ -66,16 +81,31 @@ export function activate(context: sourcegraph.ExtensionContext): void {
 
     const LOCATION_PROVIDER_ID = 'bookmarks.savedBookmarkLocations'
 
+    sourcegraph.configuration.subscribe(() => {
+        bookmarks$.next(getBookmarks())
+    })
+
+    // FIXME: currently this loaded only after clicking "Find references"
     // Register a location provider with user-saved bookmarks
     context.subscriptions.add(
         sourcegraph.languages.registerLocationProvider(LOCATION_PROVIDER_ID, ['*'], {
-            provideLocations: () => {
-                // TODO: Observe user settings. Map each emission
-                // to sourcegraph.Location type (`new sourcegraph.Location`).
-
-                console.log('calling location provider')
-                return []
-            },
+            provideLocations: () =>
+                bookmarks$.pipe(
+                    map(bookmarks =>
+                        bookmarks.map(
+                            ({ uri, range }) =>
+                                new sourcegraph.Location(
+                                    new URL(uri),
+                                    new sourcegraph.Range(
+                                        range.start.line,
+                                        range.start.character,
+                                        range.end.line,
+                                        range.end.character
+                                    )
+                                )
+                        )
+                    )
+                ),
         })
     )
 
@@ -84,5 +114,4 @@ export function activate(context: sourcegraph.ExtensionContext): void {
     panel.title = 'Bookmarks'
     panel.component = { locationProvider: LOCATION_PROVIDER_ID }
 }
-
 // Sourcegraph extension documentation: https://docs.sourcegraph.com/extensions/authoring
